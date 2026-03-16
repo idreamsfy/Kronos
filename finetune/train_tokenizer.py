@@ -9,13 +9,15 @@ import torch.distributed as dist
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-import comet_ml
+try:
+    import comet_ml
+except ImportError:
+    comet_ml = None
 
 # Ensure project root is in path
-sys.path.append("../")
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from config import Config
 from dataset import QlibDataset
 from model.kronos import KronosTokenizer
@@ -46,14 +48,10 @@ def create_dataloaders(config: dict, rank: int, world_size: int):
     valid_dataset = QlibDataset('val')
     print(f"[Rank {rank}] Train dataset size: {len(train_dataset)}, Validation dataset size: {len(valid_dataset)}")
 
-    train_sampler = DistributedSampler(train_dataset, num_replicas=world_size, rank=rank, shuffle=True)
-    val_sampler = DistributedSampler(valid_dataset, num_replicas=world_size, rank=rank, shuffle=False)
-
     train_loader = DataLoader(
         train_dataset,
         batch_size=config['batch_size'],
-        sampler=train_sampler,
-        shuffle=False,  # Shuffle is handled by the sampler
+        shuffle=False,  # Dataset handles random sampling internally
         num_workers=config.get('num_workers', 2),
         pin_memory=True,
         drop_last=True
@@ -61,8 +59,7 @@ def create_dataloaders(config: dict, rank: int, world_size: int):
     val_loader = DataLoader(
         valid_dataset,
         batch_size=config['batch_size'],
-        sampler=val_sampler,
-        shuffle=False,
+        shuffle=False,  # Dataset handles random sampling internally
         num_workers=config.get('num_workers', 2),
         pin_memory=True,
         drop_last=False
@@ -117,8 +114,6 @@ def train_model(model, device, config, save_dir, logger, rank, world_size):
     for epoch_idx in range(config['epochs']):
         epoch_start_time = time.time()
         model.train()
-        train_loader.sampler.set_epoch(epoch_idx)
-
         # Set dataset seeds for reproducible sampling
         train_dataset.set_epoch_seed(epoch_idx * 10000 + rank)
         valid_dataset.set_epoch_seed(0)  # Keep validation sampling consistent
@@ -220,7 +215,7 @@ def main(config: dict):
     Main function to orchestrate the DDP training process.
     """
     rank, world_size, local_rank = setup_ddp()
-    device = torch.device(f"cuda:{local_rank}")
+    device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
     set_seed(config['seed'], rank)
 
     save_dir = os.path.join(config['save_path'], config['tokenizer_save_folder_name'])
@@ -234,7 +229,7 @@ def main(config: dict):
             'save_directory': save_dir,
             'world_size': world_size,
         }
-        if config['use_comet']:
+        if config['use_comet'] and comet_ml is not None:
             comet_logger = comet_ml.Experiment(
                 api_key=config['comet_config']['api_key'],
                 project_name=config['comet_config']['project_name'],
@@ -250,7 +245,7 @@ def main(config: dict):
     # Model Initialization
     model = KronosTokenizer.from_pretrained(config['pretrained_tokenizer_path'])
     model.to(device)
-    model = DDP(model, device_ids=[local_rank], find_unused_parameters=False)
+    model = DDP(model, device_ids=[local_rank] if torch.cuda.is_available() else None, find_unused_parameters=False)
 
     if rank == 0:
         print(f"Model Size: {get_model_size(model.module)}")

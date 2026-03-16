@@ -74,3 +74,8 @@ venv.bak/
 temp/
 tmp/
 .python-version
+qlib_bin.tar.gz
+data/processed_datasets/test_data.pkl
+data/processed_datasets/train_data.pkl
+data/processed_datasets/val_data.pkl
+outputs/models/finetune_tokenizer_demo/checkpoints/best_model/model.safetensors

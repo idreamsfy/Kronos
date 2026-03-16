@@ -72,16 +72,19 @@ class Config:
         # =================================================================
         # Experiment Logging & Saving
         # =================================================================
-        self.use_comet = True # Set to False if you don't want to use Comet ML
+        # Enable Comet ML by setting the environment variable USE_COMET=1
+        # and providing a valid COMET_API_KEY in your environment.
+        self.use_comet = True  # Enabled since API key is provided
+
+        # Comet ML config can be overridden via environment variables.
+        # If you don't use Comet, just leave these empty.
         self.comet_config = {
-            # It is highly recommended to load secrets from environment variables
-            # for security purposes. Example: os.getenv("COMET_API_KEY")
-            "api_key": "YOUR_COMET_API_KEY",
-            "project_name": "Kronos-Finetune-Demo",
-            "workspace": "your_comet_workspace" # TODO: Change to your Comet ML workspace name
+            "api_key": "R08BZlyV0qvD2kkhj835a83kn",
+            "project_name": os.getenv('COMET_PROJECT_NAME', 'Kronos-Finetune-Demo'),
+            "workspace": os.getenv('COMET_WORKSPACE', 'your_comet_workspace'),
         }
-        self.comet_tag = 'finetune_demo'
-        self.comet_name = 'finetune_demo'
+        self.comet_tag = os.getenv('COMET_TAG', 'finetune_demo')
+        self.comet_name = os.getenv('COMET_NAME', 'finetune_demo')
 
         # Base directory for saving model checkpoints and results.
         # Using a general 'outputs' directory is a common practice.
@@ -98,8 +101,8 @@ class Config:
         # =================================================================
         # TODO: Update these paths to your pretrained model locations.
         # These can be local paths or Hugging Face Hub model identifiers.
-        self.pretrained_tokenizer_path = "path/to/your/Kronos-Tokenizer-base"
-        self.pretrained_predictor_path = "path/to/your/Kronos-small"
+        self.pretrained_tokenizer_path = "NeoQuasar/Kronos-Tokenizer-base"
+        self.pretrained_predictor_path = "NeoQuasar/Kronos-small"
 
         # Paths to the fine-tuned models, derived from the save_path.
         # These will be generated automatically during training.
