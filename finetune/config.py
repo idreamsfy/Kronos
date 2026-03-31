@@ -74,7 +74,7 @@ class Config:
         # =================================================================
         # Enable Comet ML by setting the environment variable USE_COMET=1
         # and providing a valid COMET_API_KEY in your environment.
-        self.use_comet = True  # Enabled since API key is provided
+        self.use_comet = False  # Disabled for local training
 
         # Comet ML config can be overridden via environment variables.
         # If you don't use Comet, just leave these empty.

@@ -4,6 +4,7 @@ import datetime
 import numpy as np
 import torch
 import torch.distributed as dist
+from datetime import timedelta
 
 
 def setup_ddp():
@@ -20,8 +21,18 @@ def setup_ddp():
     if not dist.is_available():
         raise RuntimeError("torch.distributed is not available.")
 
+    # Use gloo backend for CPU or when NCCL is not available (macOS)
     backend = "nccl" if torch.cuda.is_available() else "gloo"
-    dist.init_process_group(backend=backend)
+    
+    # Set timeout to avoid hanging on macOS
+    try:
+        dist.init_process_group(backend=backend, timeout=datetime.timedelta(seconds=60))
+    except Exception as e:
+        print(f"Warning: DDP initialization failed: {e}")
+        print("Falling back to single process training...")
+        # Return default values for non-DDP mode
+        return 0, 1, 0
+    
     rank = int(os.environ["RANK"])
     world_size = int(os.environ["WORLD_SIZE"])
     local_rank = int(os.environ["LOCAL_RANK"])
