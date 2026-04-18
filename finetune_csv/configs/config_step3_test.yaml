@@ -1,0 +1,55 @@
+# Configuration for Kronos Fine-tuning on CSV Data
+# Updated for Step 3: Run the Finetuning
+
+data:
+  # Use the example data from finetune_csv/data directory
+  data_path: "data/HK_ali_09988_kline_5min_all.csv"
+  lookback_window: 512
+  predict_window: 48
+  max_context: 512
+  clip: 5.0
+  # Dataset split ratio
+  train_ratio: 0.8
+  val_ratio: 0.15
+  test_ratio: 0.05
+
+training:
+  # Reduced epochs for faster testing (increase for production)
+  tokenizer_epochs: 5
+  basemodel_epochs: 3
+  batch_size: 16
+  log_interval: 10
+  num_workers: 0  # Set to 0 for Windows compatibility
+  seed: 42
+  
+  tokenizer_learning_rate: 0.0002
+  predictor_learning_rate: 0.000001
+  
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_weight_decay: 0.1
+  
+  # Gradient accumulation steps
+  accumulation_steps: 1
+
+# Model path configuration
+model_paths:
+  # Use pre-trained models from Hugging Face
+  pretrained_tokenizer: "NeoQuasar/Kronos-Tokenizer-base"
+  pretrained_predictor: "NeoQuasar/Kronos-base"
+  
+  # Experiment name and save paths
+  exp_name: "test_finetune_run"
+  base_path: "outputs/finetuned_models"
+  
+  # Auto-generated paths (leave empty for auto-generation)
+  base_save_path: ""
+  finetuned_tokenizer: ""
+  
+  tokenizer_save_name: "tokenizer"
+  basemodel_save_name: "basemodel"
+
+experiment:
+  name: "kronos_step3_finetune"
+  description: "Step 3 fine-tuning demonstration"
+  use_comet: false  # Disable Comet ML for simplicity
