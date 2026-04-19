@@ -48,16 +48,20 @@ Desktop.ini
 *.parquet
 *.h5
 *.hdf5
+*.csv
+!data/README.md
 
 # Model files (large files)
 *.pth
 *.pt
 *.ckpt
 *.bin
+*.safetensors
 
 # Logs
 *.log
 logs/
+finetune_csv/logs/
 
 # Environment
 .env
@@ -79,3 +83,13 @@ data/processed_datasets/test_data.pkl
 data/processed_datasets/train_data.pkl
 data/processed_datasets/val_data.pkl
 outputs/models/finetune_tokenizer_demo/checkpoints/best_model/model.safetensors
+
+# Prediction results and figures
+prediction_results/
+figures/*_prediction_*.png
+
+# Training outputs (keep configs, exclude models)
+outputs/finetuned_models/*/basemodel/
+outputs/finetuned_models/*/tokenizer/
+!outputs/finetuned_models/*/basemodel/best_model/README.md
+!outputs/finetuned_models/*/tokenizer/best_model/README.md
