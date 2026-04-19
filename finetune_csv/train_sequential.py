@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 import time
 import argparse
 import torch
@@ -7,7 +8,10 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import torch.distributed as dist
 
-sys.path.append('../')
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from model import Kronos, KronosTokenizer, KronosPredictor
 
 from config_loader import CustomFinetuneConfig
@@ -81,8 +85,81 @@ class SequentialTrainer:
         if getattr(self.config, 'pre_trained_tokenizer', True):
             logger.info("Loading pretrained tokenizer...")
             if self.rank == 0:
-                print("Loading pretrained tokenizer...")
-            tokenizer = KronosTokenizer.from_pretrained(self.config.pretrained_tokenizer_path)
+                print("Loading pretrained tokenizer from Hugging Face...")
+            
+            # Download config from Hugging Face
+            from huggingface_hub import hf_hub_download
+            import json
+            
+            try:
+                # Try to download config.json
+                config_file = hf_hub_download(
+                    repo_id=self.config.pretrained_tokenizer_path,
+                    filename="config.json"
+                )
+                with open(config_file, 'r') as f:
+                    arch = json.load(f)
+                
+                if self.rank == 0:
+                    print(f"Loaded tokenizer config from {self.config.pretrained_tokenizer_path}")
+                    print(f"Tokenizer architecture: {arch}")
+                
+                # Initialize tokenizer with config
+                tokenizer = KronosTokenizer(
+                    d_in=arch.get('d_in', 6),
+                    d_model=arch.get('d_model', 256),
+                    n_heads=arch.get('n_heads', 4),
+                    ff_dim=arch.get('ff_dim', 512),
+                    n_enc_layers=arch.get('n_enc_layers', 4),
+                    n_dec_layers=arch.get('n_dec_layers', 4),
+                    ffn_dropout_p=arch.get('ffn_dropout_p', 0.0),
+                    attn_dropout_p=arch.get('attn_dropout_p', 0.0),
+                    resid_dropout_p=arch.get('resid_dropout_p', 0.0),
+                    s1_bits=arch.get('s1_bits', 10),
+                    s2_bits=arch.get('s2_bits', 10),
+                    beta=arch.get('beta', 0.05),
+                    gamma0=arch.get('gamma0', 1.0),
+                    gamma=arch.get('gamma', 1.1),
+                    zeta=arch.get('zeta', 0.05),
+                    group_size=arch.get('group_size', 4)
+                )
+                
+                # Load weights
+                model_file = hf_hub_download(
+                    repo_id=self.config.pretrained_tokenizer_path,
+                    filename="model.safetensors"
+                )
+                from safetensors.torch import load_file
+                state_dict = load_file(model_file)
+                tokenizer.load_state_dict(state_dict)
+                
+                if self.rank == 0:
+                    print("✅ Pretrained tokenizer loaded successfully")
+                    
+            except Exception as e:
+                if self.rank == 0:
+                    print(f"⚠️  Failed to load from Hugging Face: {e}")
+                    print("Using default architecture...")
+                
+                # Fallback to default architecture
+                tokenizer = KronosTokenizer(
+                    d_in=6,
+                    d_model=256,
+                    n_heads=4,
+                    ff_dim=512,
+                    n_enc_layers=4,
+                    n_dec_layers=4,
+                    ffn_dropout_p=0.0,
+                    attn_dropout_p=0.0,
+                    resid_dropout_p=0.0,
+                    s1_bits=10,
+                    s2_bits=10,
+                    beta=0.05,
+                    gamma0=1.0,
+                    gamma=1.1,
+                    zeta=0.05,
+                    group_size=4
+                )
         else:
             if self.rank == 0:
                 print("pre_trained_tokenizer=False, randomly initializing Tokenizer architecture")
@@ -199,8 +276,70 @@ class SequentialTrainer:
         if getattr(self.config, 'pre_trained_predictor', True):
             logger.info("Loading pretrained predictor...")
             if self.rank == 0:
-                print("Loading pretrained predictor...")
-            model = Kronos.from_pretrained(self.config.pretrained_predictor_path)
+                print("Loading pretrained predictor from Hugging Face...")
+            
+            # Download config from Hugging Face
+            from huggingface_hub import hf_hub_download
+            import json
+            
+            try:
+                # Try to download config.json
+                config_file = hf_hub_download(
+                    repo_id=self.config.pretrained_predictor_path,
+                    filename="config.json"
+                )
+                with open(config_file, 'r') as f:
+                    arch = json.load(f)
+                
+                if self.rank == 0:
+                    print(f"Loaded predictor config from {self.config.pretrained_predictor_path}")
+                
+                # Initialize model with config
+                model = Kronos(
+                    s1_bits=arch.get('s1_bits', 10),
+                    s2_bits=arch.get('s2_bits', 10),
+                    n_layers=arch.get('n_layers', 12),
+                    d_model=arch.get('d_model', 832),
+                    n_heads=arch.get('n_heads', 16),
+                    ff_dim=arch.get('ff_dim', 2048),
+                    ffn_dropout_p=arch.get('ffn_dropout_p', 0.2),
+                    attn_dropout_p=arch.get('attn_dropout_p', 0.0),
+                    resid_dropout_p=arch.get('resid_dropout_p', 0.2),
+                    token_dropout_p=arch.get('token_dropout_p', 0.0),
+                    learn_te=arch.get('learn_te', True)
+                )
+                
+                # Load weights
+                model_file = hf_hub_download(
+                    repo_id=self.config.pretrained_predictor_path,
+                    filename="model.safetensors"
+                )
+                from safetensors.torch import load_file
+                state_dict = load_file(model_file)
+                model.load_state_dict(state_dict, strict=False)
+                
+                if self.rank == 0:
+                    print("✅ Pretrained predictor loaded successfully")
+                    
+            except Exception as e:
+                if self.rank == 0:
+                    print(f"⚠️  Failed to load from Hugging Face: {e}")
+                    print("Using default architecture...")
+                
+                # Fallback to default architecture
+                model = Kronos(
+                    s1_bits=10,
+                    s2_bits=10,
+                    n_layers=12,
+                    d_model=832,
+                    n_heads=16,
+                    ff_dim=2048,
+                    ffn_dropout_p=0.2,
+                    attn_dropout_p=0.0,
+                    resid_dropout_p=0.2,
+                    token_dropout_p=0.0,
+                    learn_te=True
+                )
         else:
             if self.rank == 0:
                 print("pre_trained_predictor=False, randomly initializing Predictor architecture")

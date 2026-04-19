@@ -1,0 +1,64 @@
+# Configuration for Kronos Fine-tuning on ICBC (Industrial and Commercial Bank of China) Daily Data
+# Stock: 工商银行 (SHSE.601398)
+# Data Period: 2016-04-21 to 2026-04-17 (10 years)
+# Records: 2,426
+
+data:
+  # Path to the converted data
+  data_path: "data/kronos_SHSE_601398_daily_2016-04-21_2026-04-17.csv"
+  lookback_window: 60      # Lookback window size
+  predict_window: 10       # Prediction window size
+  max_context: 512
+  clip: 5.0
+  # Dataset split ratio
+  train_ratio: 0.8
+  val_ratio: 0.15
+  test_ratio: 0.05
+
+training:
+  # Training epochs
+  tokenizer_epochs: 15
+  basemodel_epochs: 10
+  batch_size: 8
+  log_interval: 10
+  num_workers: 0  # Set to 0 for Windows compatibility
+  seed: 42
+  
+  # Learning rates
+  tokenizer_learning_rate: 0.0002
+  predictor_learning_rate: 0.000001
+  
+  # Adam optimizer parameters
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_weight_decay: 0.1
+  
+  # Gradient accumulation steps
+  accumulation_steps: 1
+
+# Model path configuration
+model_paths:
+  # Use pre-trained models from Hugging Face
+  pretrained_tokenizer: "NeoQuasar/Kronos-Tokenizer-base"
+  pretrained_predictor: "NeoQuasar/Kronos-base"
+  
+  # Experiment name and save paths
+  exp_name: "icbc_daily_finetune"
+  base_path: "outputs/finetuned_models"
+  
+  # Auto-generated paths (leave empty for auto-generation)
+  base_save_path: ""
+  finetuned_tokenizer: ""
+  
+  tokenizer_save_name: "tokenizer"
+  basemodel_save_name: "basemodel"
+
+experiment:
+  name: "icbc_daily_prediction"
+  description: "Fine-tuning on ICBC (工商银行) daily data - 10 years history"
+  use_comet: false
+
+# Device configuration
+device:
+  use_cuda: true
+  device_id: 0
