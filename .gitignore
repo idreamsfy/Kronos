@@ -62,6 +62,7 @@ Desktop.ini
 *.log
 logs/
 finetune_csv/logs/
+outputs/logs/
 
 # Environment
 .env
@@ -72,24 +73,33 @@ ENV/
 env.bak/
 venv.bak/
 
-# Temporary files
+# Temporary files and outputs
 *.tmp
 *.temp
 temp/
 tmp/
 .python-version
 qlib_bin.tar.gz
-data/processed_datasets/test_data.pkl
-data/processed_datasets/train_data.pkl
-data/processed_datasets/val_data.pkl
-outputs/models/finetune_tokenizer_demo/checkpoints/best_model/model.safetensors
+gmcache/
 
-# Prediction results and figures
-prediction_results/
+# Data (keep README and metadata)
+data/raw/*.csv
+data/processed/*.csv
+!data/README.md
+!data/metadata/*.csv
+
+# Models (large files)
+models/finetuned/*/model.safetensors
+models/pretrained/*/model.safetensors
+models/checkpoints/
+
+# Outputs (can be regenerated)
+outputs/predictions/
+outputs/figures/
 figures/*_prediction_*.png
 
-# Training outputs (keep configs, exclude models)
-outputs/finetuned_models/*/basemodel/
-outputs/finetuned_models/*/tokenizer/
-!outputs/finetuned_models/*/basemodel/best_model/README.md
-!outputs/finetuned_models/*/tokenizer/best_model/README.md
+# Old paths (for backward compatibility)
+finetune_csv/logs/
+outputs/finetuned_models/
+outputs/models/
+prediction_results/

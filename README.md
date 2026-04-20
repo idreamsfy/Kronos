@@ -1,5 +1,10 @@
 <div align="center">
   <h2><b>Kronos: A Foundation Model for the Language of Financial Markets </b></h2>
+  
+  **🎉 项目结构已重构！更加清晰、易于维护**
+  
+  📁 查看 [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) 了解新的目录结构  
+  📋 查看 [REFACTORING_COMPLETE.md](REFACTORING_COMPLETE.md) 了解重构详情
 </div>
 
 
