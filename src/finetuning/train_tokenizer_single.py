@@ -13,10 +13,13 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 # Ensure project root is in path
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from config import Config
-from dataset import QlibDataset
-from model.kronos import KronosTokenizer
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from src.finetuning.config import Config
+from src.finetuning.dataset import QlibDataset
+from src.kronos import KronosTokenizer
 
 
 def set_seed(seed: int):

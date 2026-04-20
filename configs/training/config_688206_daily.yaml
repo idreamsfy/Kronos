@@ -1,0 +1,41 @@
+data:
+  clip: 5.0
+  data_path: data/processed/kronos_SHSE_688206_daily_2021-12-28_2026-04-20.csv
+  lookback_window: 60
+  max_context: 512
+  predict_window: 10
+  test_ratio: 0.0
+  train_ratio: 0.9
+  val_ratio: 0.1
+device:
+  device_id: 0
+  use_cuda: true
+experiment:
+  description: 对科创板股票688206进行日K线数据微调训练
+  name: 688206_daily_prediction
+  skip_existing: false
+  train_basemodel: true
+  train_tokenizer: true
+  use_comet: false
+model_paths:
+  base_path: outputs/finetuned_models
+  base_save_path: ''
+  basemodel_save_name: basemodel
+  exp_name: 688206_daily_finetune
+  finetuned_tokenizer: ''
+  pretrained_predictor: NeoQuasar/Kronos-base
+  pretrained_tokenizer: NeoQuasar/Kronos-Tokenizer-base
+  tokenizer_save_name: tokenizer
+training:
+  accumulation_steps: 1
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_weight_decay: 0.1
+  basemodel_epochs: 10
+  batch_size: 8
+  log_interval: 50
+  num_workers: 4
+  predictor_learning_rate: 1.0e-06
+  seed: 42
+  tokenizer_epochs: 15
+  tokenizer_learning_rate: 0.0002

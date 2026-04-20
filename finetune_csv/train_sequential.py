@@ -12,7 +12,7 @@ import torch.distributed as dist
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from model import Kronos, KronosTokenizer, KronosPredictor
+from src.kronos import Kronos, KronosTokenizer, KronosPredictor
 
 from config_loader import CustomFinetuneConfig
 from finetune_tokenizer import train_tokenizer, set_seed, setup_logging as setup_tokenizer_logging

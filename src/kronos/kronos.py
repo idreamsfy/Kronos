@@ -3,11 +3,13 @@ import pandas as pd
 import torch
 from huggingface_hub import PyTorchModelHubMixin
 import sys
+import os
 
 from tqdm import trange
 
-sys.path.append("../")
-from model.module import *
+# Ensure correct import path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.kronos.module import *
 
 
 class KronosTokenizer(nn.Module, PyTorchModelHubMixin):
