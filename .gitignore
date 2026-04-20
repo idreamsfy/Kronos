@@ -44,12 +44,20 @@ Desktop.ini
 *~
 
 # Data files (large files)
+data/raw/
+data/processed/*.pkl
 *.feather
 *.parquet
 *.h5
 *.hdf5
+*.csv
 
 # Model files (large files)
+outputs/models/**/*.safetensors
+outputs/models/**/*.pth
+outputs/models/**/*.pt
+outputs/models/**/*.ckpt
+outputs/models/**/*.bin
 *.pth
 *.pt
 *.ckpt
@@ -57,11 +65,13 @@ Desktop.ini
 
 # Logs
 *.log
+outputs/logs/
 logs/
 
 # Environment
 .env
-.venv
+.env.local
+.venv/
 env/
 venv/
 ENV/
@@ -75,7 +85,6 @@ temp/
 tmp/
 .python-version
 qlib_bin.tar.gz
-data/processed_datasets/test_data.pkl
-data/processed_datasets/train_data.pkl
-data/processed_datasets/val_data.pkl
-outputs/models/finetune_tokenizer_demo/checkpoints/best_model/model.safetensors
+
+# Archive documents
+docs/archive/
