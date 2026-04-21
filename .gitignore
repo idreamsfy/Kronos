@@ -91,4 +91,10 @@ tmp/
 qlib_bin.tar.gz
 
 # Archive documents
-docs/archive/
+# docs/archive/
+
+# Prediction results (keep only recent)
+outputs/predictions/archive/
+
+# Batch files
+*.bat
