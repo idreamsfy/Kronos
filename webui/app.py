@@ -35,6 +35,8 @@ AVAILABLE_MODELS = {
         'name': 'Kronos-mini',
         'model_id': 'NeoQuasar/Kronos-mini',
         'tokenizer_id': 'NeoQuasar/Kronos-Tokenizer-2k',
+        'local_model_path': None,  # Use HuggingFace
+        'local_tokenizer_path': None,
         'context_length': 2048,
         'params': '4.1M',
         'description': 'Lightweight model, suitable for fast prediction'
@@ -43,6 +45,8 @@ AVAILABLE_MODELS = {
         'name': 'Kronos-small',
         'model_id': 'NeoQuasar/Kronos-small',
         'tokenizer_id': 'NeoQuasar/Kronos-Tokenizer-base',
+        'local_model_path': None,
+        'local_tokenizer_path': None,
         'context_length': 512,
         'params': '24.7M',
         'description': 'Small model, balanced performance and speed'
@@ -51,27 +55,38 @@ AVAILABLE_MODELS = {
         'name': 'Kronos-base',
         'model_id': 'NeoQuasar/Kronos-base',
         'tokenizer_id': 'NeoQuasar/Kronos-Tokenizer-base',
+        'local_model_path': './model/pretrained_models/Kronos-base',
+        'local_tokenizer_path': './model/pretrained_models/Kronos-Tokenizer-base',
         'context_length': 512,
         'params': '102.3M',
-        'description': 'Base model, provides better prediction quality'
+        'description': 'Base model, provides better prediction quality (Local)'
     }
 }
 
 def load_data_files():
     """Scan data directory and return available data files"""
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
-    data_files = []
+    # Check both old and new data directories
+    data_dirs = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'raw', 'akshare'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data'),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'akshare_data')
+    ]
     
-    if os.path.exists(data_dir):
-        for file in os.listdir(data_dir):
-            if file.endswith(('.csv', '.feather')):
-                file_path = os.path.join(data_dir, file)
-                file_size = os.path.getsize(file_path)
-                data_files.append({
-                    'name': file,
-                    'path': file_path,
-                    'size': f"{file_size / 1024:.1f} KB" if file_size < 1024*1024 else f"{file_size / (1024*1024):.1f} MB"
-                })
+    data_files = []
+    seen_files = set()
+    
+    for data_dir in data_dirs:
+        if os.path.exists(data_dir):
+            for file in os.listdir(data_dir):
+                if file.endswith(('.csv', '.feather')) and file not in seen_files:
+                    file_path = os.path.join(data_dir, file)
+                    file_size = os.path.getsize(file_path)
+                    data_files.append({
+                        'name': file,
+                        'path': file_path,
+                        'size': f"{file_size / 1024:.1f} KB" if file_size < 1024*1024 else f"{file_size / (1024*1024):.1f} MB"
+                    })
+                    seen_files.add(file)
     
     return data_files
 
@@ -633,20 +648,31 @@ def load_model():
             return jsonify({'error': 'Kronos model library not available'}), 400
         
         data = request.get_json()
-        model_key = data.get('model_key', 'kronos-small')
-        device = data.get('device', 'cpu')
+        model_key = data.get('model_key', 'kronos-base')  # Default to kronos-base
+        device = data.get('device', 'mps' if __import__('torch').backends.mps.is_available() else 'cpu')
         
         if model_key not in AVAILABLE_MODELS:
             return jsonify({'error': f'Unsupported model: {model_key}'}), 400
         
         model_config = AVAILABLE_MODELS[model_key]
         
-        # Load tokenizer and model
-        tokenizer = KronosTokenizer.from_pretrained(model_config['tokenizer_id'])
-        model = Kronos.from_pretrained(model_config['model_id'])
+        # Determine whether to use local path or HuggingFace ID
+        if model_config.get('local_model_path') and os.path.exists(model_config['local_model_path']):
+            # Use local model
+            print(f"Loading model from local path: {model_config['local_model_path']}")
+            tokenizer = KronosTokenizer.from_pretrained(model_config['local_tokenizer_path'])
+            model = Kronos.from_pretrained(model_config['local_model_path'])
+        else:
+            # Use HuggingFace model
+            print(f"Loading model from HuggingFace: {model_config['model_id']}")
+            tokenizer = KronosTokenizer.from_pretrained(model_config['tokenizer_id'])
+            model = Kronos.from_pretrained(model_config['model_id'])
         
         # Create predictor
         predictor = KronosPredictor(model, tokenizer, device=device, max_context=model_config['context_length'])
+        
+        # Check if using local model
+        is_local = model_config.get('local_model_path') and os.path.exists(model_config['local_model_path'])
         
         return jsonify({
             'success': True,
@@ -655,11 +681,14 @@ def load_model():
                 'name': model_config['name'],
                 'params': model_config['params'],
                 'context_length': model_config['context_length'],
-                'description': model_config['description']
+                'description': model_config['description'],
+                'source': 'local' if is_local else 'huggingface'
             }
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Model loading failed: {str(e)}'}), 500
 
 @app.route('/api/available-models')
@@ -705,4 +734,4 @@ if __name__ == '__main__':
     else:
         print("Tip: Will use simulated data for demonstration")
     
-    app.run(debug=True, host='0.0.0.0', port=7070)
+    app.run(debug=True, host='0.0.0.0', port=8080)
