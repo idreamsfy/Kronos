@@ -1,0 +1,6 @@
+{
+  "prediction_date": "2026-04-21 20:43:17",
+  "model": "Kronos-base-finetuned",
+  "stock_code": "300033",
+  "current_close": 240.88,
+  "predicted_avg_close": 

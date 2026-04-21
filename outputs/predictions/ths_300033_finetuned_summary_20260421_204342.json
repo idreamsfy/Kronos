@@ -1,0 +1,12 @@
+{
+  "prediction_date": "2026-04-21 20:43:42",
+  "model": "Kronos-base-finetuned",
+  "stock_code": "300033",
+  "current_close": 240.88,
+  "predicted_avg_close": 225.16586303710938,
+  "price_change": -15.71413696289062,
+  "price_change_pct": -6.523637065298331,
+  "trend": "bearish",
+  "volatility": 1.5726407766342163,
+  "avg_volume": 10643923.0
+}

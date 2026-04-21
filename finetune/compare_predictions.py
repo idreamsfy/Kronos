@@ -101,10 +101,45 @@ def compare_predictions():
     
     # 加载微调模型
     print("5. 加载微调模型...")
-    model_fine = Kronos.from_pretrained(finetuned_model_path)
-    model_fine.to(device)
-    predictor_fine = KronosPredictor(model_fine, tokenizer, device=device, max_context=512)
-    print(f"   ✅ 微调模型加载成功")
+    try:
+        # 从原始模型复制架构，然后加载微调权重
+        model_fine = Kronos.from_pretrained(original_model_path)
+        
+        # 加载微调后的权重
+        import safetensors.torch
+        state_dict = safetensors.torch.load_file(f"{finetuned_model_path}/model.safetensors")
+        model_fine.load_state_dict(state_dict, strict=False)
+        
+        model_fine.to(device)
+        predictor_fine = KronosPredictor(model_fine, tokenizer, device=device, max_context=512)
+        print(f"   ✅ 微调模型加载成功")
+    except Exception as e:
+        print(f"   ❌ 微调模型加载失败: {e}")
+        print(f"   💡 尝试使用最新检查点...")
+        
+        # 查找最新检查点
+        checkpoint_dir = "./outputs/models/finetune_300033_base_real"
+        if os.path.exists(checkpoint_dir):
+            checkpoints = [d for d in os.listdir(checkpoint_dir) if d.startswith('checkpoint_epoch_')]
+            if checkpoints:
+                latest_checkpoint = sorted(checkpoints)[-1]
+                checkpoint_path = os.path.join(checkpoint_dir, latest_checkpoint)
+                print(f"   使用检查点: {latest_checkpoint}")
+                
+                try:
+                    model_fine = Kronos.from_pretrained(original_model_path)
+                    state_dict = safetensors.torch.load_file(f"{checkpoint_path}/model.safetensors")
+                    model_fine.load_state_dict(state_dict, strict=False)
+                    model_fine.to(device)
+                    predictor_fine = KronosPredictor(model_fine, tokenizer, device=device, max_context=512)
+                    print(f"   ✅ 检查点模型加载成功")
+                except Exception as e2:
+                    print(f"   ❌ 检查点加载也失败: {e2}")
+                    return
+            else:
+                return
+        else:
+            return
     print()
     
     # 准备预测数据（使用最后 100 天）
