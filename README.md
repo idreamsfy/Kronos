@@ -92,6 +92,25 @@ We release a family of pre-trained models with varying capacities to suit differ
 pip install -r requirements.txt
 ```
 
+### 📂 Project Structure
+
+After recent refactoring, the project has a clean and organized structure:
+
+```
+Kronos/
+├── model/              # Core model code (Kronos, Tokenizer)
+├── finetune/           # Fine-tuning & prediction scripts ⭐
+├── webui/              # Web interface for predictions
+├── scripts/            # Utility scripts (data fetching, training)
+├── examples/           # Example code
+├── data/               # Data files (raw & processed)
+├── outputs/            # Training outputs & predictions
+├── config/             # Configuration files
+└── docs/               # Documentation
+```
+
+For detailed directory information, see [docs/DIRECTORY_STRUCTURE.md](docs/DIRECTORY_STRUCTURE.md).
+
 ### 📈 Making Forecasts
 
 Forecasting with Kronos is straightforward using the `KronosPredictor` class. It handles data preprocessing, normalization, prediction, and inverse normalization, allowing you to get from raw data to forecasts in just a few lines of code.
@@ -213,6 +232,35 @@ Running this script will generate a plot comparing the ground truth data against
 
 Additionally, we provide a script that makes predictions without Volume and Amount data, which can be found in [`examples/prediction_wo_vol_example.py`](examples/prediction_wo_vol_example.py).
 
+### 🔮 Quick Prediction with Fine-tuned Model
+
+We provide ready-to-use scripts for predicting Chinese A-share stocks using our fine-tuned Kronos-base model:
+
+```bash
+# Predict Tonghuashun (300033) future 10 days
+python finetune/predict_ths_300033.py
+
+# Compare original vs fine-tuned model predictions
+python finetune/compare_predictions.py
+```
+
+Results will be saved to `outputs/predictions/` with detailed analysis reports.
+
+### 🌐 Web Interface
+
+For a user-friendly experience, launch the web interface:
+
+```bash
+# Start the web UI
+cd webui
+./start.sh
+
+# Or use Python directly
+python run.py
+```
+
+Then open your browser and visit `http://localhost:8080` to make predictions interactively.
+
 
 ## 🔧 Finetuning on Your Own Data (A-Share Market Example)
 
@@ -238,7 +286,7 @@ The finetuning process is divided into four main steps:
 
 ### Step 1: Configure Your Experiment
 
-All settings for data, training, and model paths are centralized in `finetune/config.py`. Before running any scripts, please **modify the following paths** according to your environment:
+All settings for data, training, and model paths are centralized in `config/ths_300033_config.py`. Before running any scripts, please **modify the following paths** according to your environment:
 
 *   `qlib_data_path`: Path to your local Qlib data directory.
 *   `dataset_path`: Directory where the processed train/validation/test pickle files will be saved.

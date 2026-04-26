@@ -1,11 +1,12 @@
 """
-使用 Futu API（富途牛牛）获取股票 300033（同花顺）过去10年历史数据
+使用 Futu API（富途牛牛）获取股票 300033（同花顺）最近3年5分钟K线数据
 并转换为 Kronos 格式保存为 CSV
 
 注意:
 1. 需要安装并运行 FutuOpenD（富途量化交易平台）
 2. 需要注册富途牛牛账号
 3. FutuOpenD 需要在本地运行并监听端口
+4. 5分钟数据量较大，可能需要较长时间下载
 """
 from futu import *
 import pandas as pd
@@ -13,20 +14,25 @@ import os
 from datetime import datetime, timedelta
 
 print("=" * 70)
-print("使用 Futu API（富途牛牛）获取股票 300033（同花顺）数据")
+print("使用 Futu API（富途牛牛）获取股票 300033（同花顺）5分钟K线数据")
 print("=" * 70)
 
 # 配置参数
 stock_code = "SZ.300033"  # 股票代码格式：市场.代码
-output_dir = "./akshare_data"
-output_file = os.path.join(output_dir, f"daily_300033.csv")
+output_dir = "./data/raw/futu"
+output_file = os.path.join(output_dir, f"5min_300033.csv")
 
-# 时间范围（过去10年）
+# 时间范围（最近3年）
 end_date = datetime.now().strftime("%Y-%m-%d")
-start_date = (datetime.now() - timedelta(days=3650)).strftime("%Y-%m-%d")
+start_date = (datetime.now() - timedelta(days=365*3)).strftime("%Y-%m-%d")
+
+# K线类型
+kline_type = KLType.K_5M  # 5分钟K线
+kline_name = "5分钟"
 
 print(f"\n配置信息:")
 print(f"  - 股票代码: {stock_code}")
+print(f"  - K线类型: {kline_name}")
 print(f"  - 时间范围: {start_date} 至 {end_date}")
 print(f"  - 输出文件: {output_file}")
 
@@ -38,16 +44,17 @@ try:
     quote_ctx = OpenQuoteContext(host='127.0.0.1', port=11111)
     
     print("✅ 客户端初始化成功")
-    print("\n正在获取K线数据...")
+    print("\n正在获取5分钟K线数据...")
+    print("⚠️  提示: 5分钟数据量较大，请耐心等待...\n")
     
     # 获取历史K线
-    # KlType.K_DAY = 日线
+    # KlType.K_5M = 5分钟K线
     # AuType.QFQ = 前复权
     ret, data, page_req_key = quote_ctx.request_history_kline(
         code=stock_code,
         start=start_date,
         end=end_date,
-        ktype=KLType.K_DAY,      # 日线
+        ktype=kline_type,        # 5分钟K线
         autype=AuType.QFQ,       # 前复权
         max_count=1000           # 单次最大返回1000条
     )
@@ -64,13 +71,17 @@ try:
     all_data = [data]
     total_count = len(data)
     
-    while page_req_key is not None and total_count < 5000:  # 限制最多5000条
-        print(f"已获取 {total_count} 条，继续获取更多...")
+    # 5分钟数据量很大，设置合理的上限
+    # 3年约 3*250个交易日*48个5分钟 = 36,000条
+    max_records = 50000  # 设置上限防止过多
+    
+    while page_req_key is not None and total_count < max_records:
+        print(f"已获取 {total_count:,} 条，继续获取更多...")
         ret, data, page_req_key = quote_ctx.request_history_kline(
             code=stock_code,
             start=start_date,
             end=end_date,
-            ktype=KLType.K_DAY,
+            ktype=kline_type,
             autype=AuType.QFQ,
             max_count=1000,
             page_req_key=page_req_key
@@ -88,7 +99,7 @@ try:
     else:
         df = all_data[0]
     
-    print(f"\n总共获取 {len(df)} 条记录")
+    print(f"\n总共获取 {len(df):,} 条{kline_name}K线记录")
     
     # 转换数据格式为 Kronos 要求
     print("\n转换数据格式...")
@@ -132,8 +143,9 @@ try:
     
     print(f"\n✅ 数据已成功保存至: {output_file}")
     print(f"\n数据统计:")
-    print(f"  - 记录数: {len(df)}")
+    print(f"  - 记录数: {len(df):,} 条")
     print(f"  - 时间范围: {df['timestamps'].min()} 至 {df['timestamps'].max()}")
+    print(f"  - 交易日数: 约 {len(df) // 48} 天")
     print(f"  - 收盘价范围: ¥{df['close'].min():.2f} - ¥{df['close'].max():.2f}")
     print(f"  - 成交量范围: {int(df['volume'].min()):,} - {int(df['volume'].max()):,}")
     print(f"  - 成交额范围: ¥{df['amount'].min():,.0f} - ¥{df['amount'].max():,.0f}")
@@ -159,11 +171,22 @@ try:
     else:
         print(f"  - OHLC 逻辑: ⚠️  {invalid_ohlc} 条异常")
     
+    # 检查时间间隔
+    if len(df) > 1:
+        time_diffs = df['timestamps'].diff().dt.total_seconds().dropna()
+        avg_interval = time_diffs.mean()
+        print(f"  - 平均时间间隔: {avg_interval/60:.1f} 分钟")
+        if 270 <= avg_interval <= 330:  # 5分钟 = 300秒，允许±30秒误差
+            print(f"  - 时间间隔: ✅ 正常 (5分钟)")
+        else:
+            print(f"  - 时间间隔: ⚠️  异常 (期望5分钟)")
+    
     # 关闭连接
     quote_ctx.close()
     
     print("\n" + "=" * 70)
     print("✅ 完成！数据符合 Kronos 训练要求")
+    print(f"✅ 已获取 {len(df):,} 条5分钟K线数据，可用于高频交易模型训练")
     print("=" * 70)
 
 except ConnectionRefusedError:
