@@ -1,0 +1,59 @@
+# Kronos CUDA顶级性能训练配置
+# 基于 AMD EPYC 9T24 (16核/32线程) + 64GB内存 + NVIDIA RTX 5880 Ada (12GB)
+# CUDA 12.8 | Driver 573.76
+
+data:
+  data_path: "data/raw/futu/5min_300033_updated.csv"
+  lookback_window: 100
+  predict_window: 48
+  max_context: 512
+  clip: 5.0
+  train_ratio: 0.8
+  val_ratio: 0.15
+  test_ratio: 0.05
+
+training:
+  tokenizer_epochs: 20
+  basemodel_epochs: 15
+  batch_size: 64  # RTX 5880 12GB + AMP优化值
+  log_interval: 50
+  num_workers: 8  # AMD EPYC 32线程优化
+  seed: 42
+  
+  tokenizer_learning_rate: 0.0002
+  predictor_learning_rate: 0.00002  # CUDA可使用更大学习率
+  
+  adam_beta1: 0.9
+  adam_beta2: 0.95
+  adam_weight_decay: 0.1
+  accumulation_steps: 2  # 梯度累积，有效batch size 128
+  
+  # 混合精度训练
+  use_amp: true  # Automatic Mixed Precision
+  amp_dtype: "float16"  # 或 "bfloat16" (Ada架构支持)
+
+model_paths:
+  pretrained_tokenizer: "model/pretrained_models/Kronos-Tokenizer-base"
+  pretrained_predictor: "model/pretrained_models/Kronos-base"
+  exp_name: "optimized_300033_cuda"
+  base_save_path: "outputs/models"
+  tokenizer_save_name: "tokenizer"
+  basemodel_save_name: "predictor"
+
+device:
+  use_cuda: true
+  device_id: 0
+  
+  # CUDA优化选项
+  cudnn_benchmark: true  # 加速卷积运算
+  allow_tf32: true  # Ada架构TF32加速
+  deterministic: false  # 非确定性以获得最佳性能
+
+performance:
+  # 性能监控
+  profile_training: false  # 启用性能分析 (torch.profiler)
+  log_gpu_memory: true  # 记录显存使用
+  
+  # 数据加载优化 (AMD EPYC 32线程 + 64GB内存)
+  prefetch_factor: 4  # 预取4个批次
+  persistent_workers: true  # 保持worker进程
